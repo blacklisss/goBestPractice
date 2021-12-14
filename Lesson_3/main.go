@@ -5,6 +5,7 @@ import (
 	"errors"
 	"fmt"
 	"github.com/PuerkitoBio/goquery"
+	log "github.com/sirupsen/logrus"
 	"io"
 	"net/http"
 	urlParser "net/url"
@@ -51,8 +52,8 @@ func NewCrawler(maxDepth int, req Requester) *crawler {
 }
 
 func (c *crawler) Scan(ctx context.Context, url string, curDepth int) {
-	ctx2, _ := context.WithTimeout(ctx, time.Second*1)
-	ctx3, _ := context.WithTimeout(ctx, time.Second*3)
+	ctx2, _ := context.WithTimeout(ctx, time.Second*2)
+	ctx3, _ := context.WithTimeout(ctx, time.Second*5)
 
 	c.visitedMu.RLock()
 	if _, ok := c.visited[url]; ok {
@@ -61,6 +62,7 @@ func (c *crawler) Scan(ctx context.Context, url string, curDepth int) {
 	}
 	c.visitedMu.RUnlock()
 	if curDepth >= c.maxDepth {
+		//log.Infof("Max Depth on URL: %s\n", url)
 		return
 	}
 	select {
@@ -182,20 +184,22 @@ func (p page) GetLinks() []string {
 		url, ok := s.Attr("href")
 		if ok {
 			if strings.HasPrefix(url, "#") {
+				//log.Infof("Anchor link %s\n", url)
 				return
 			}
 
 			urlInfo, err := urlParser.Parse(url)
 			if err != nil {
+				log.Warnf("error parse URL: %s\n", url)
 				return
 			}
 
 			if urlInfo.Host == "" {
-				if !strings.HasPrefix(url, "/") {
-					url = "/" + url
+				if strings.HasPrefix(url, "/") {
+					url = startUrlInfo.Scheme + "://" + startUrlInfo.Host + url
+				} else {
+					url = startUrl + url
 				}
-
-				url = startUrlInfo.Scheme + "://" + startUrlInfo.Host + url
 			}
 			//Здесь может быть относительная ссылка, нужно абсолютную
 			urls = append(urls, url)
@@ -216,21 +220,21 @@ func processResult(ctx context.Context, in <-chan CrawlResult, cancel context.Ca
 		case res := <-in:
 			sleeping = time.Now()
 			if res.Err != nil {
+				log.Errorf("ERROR Link: %s, err: %v\n", res.Url, res.Err)
 				errCount++
-				fmt.Printf("ERROR Link: %s, err: %v\n", res.Url, res.Err)
 				if errCount >= 1 {
 					//cancel()
 				}
 			} else {
-				fmt.Printf("Link: %s, Title: %s\n", res.Url, res.Title)
+				log.Infof("Link: %s, Title: %s\n", res.Url, res.Title)
 			}
 		case <-ctx.Done():
-			fmt.Printf("context canceled\n")
+			log.Warnf("context canceled\n")
 			return
 		case <-ticker.C:
 			now := time.Now()
 			if now.Sub(sleeping).Seconds() > 7 {
-				fmt.Printf("process timeout\n")
+				log.Warnf("process timeout\n")
 				cancel()
 				return
 			}
@@ -240,7 +244,7 @@ func processResult(ctx context.Context, in <-chan CrawlResult, cancel context.Ca
 
 func main() {
 	pid := os.Getpid()
-	fmt.Printf("My PID is: %d\n", pid)
+	log.Infof("My PID is: %d\n", pid)
 	var r Requester
 	r = NewRequester(time.Minute)
 	//r = NewRequestWithDelay(2*time.Second, r)
@@ -257,11 +261,11 @@ func main() {
 				crawler.maxDepth += 2
 				fmt.Printf("MaxDepth chanched to %d\n", crawler.maxDepth)
 			} else {
-				fmt.Printf("Signal SIGTERM catched\n")
+				log.Infof("Signal SIGTERM catched\n")
 				cancel()
 			}
 		case <-ctx.Done():
-			fmt.Printf("context canceled\n")
+			log.Warnf("context canceled\n")
 			return
 		}
 	}
