@@ -17,6 +17,10 @@ import (
 	"time"
 )
 
+type HTTPClient interface {
+	Do(req *http.Request) (*http.Response, error)
+}
+
 type Crawler interface {
 	Scan(ctx context.Context, url string, curDepth int)
 	GetResultChan() <-chan CrawlResult
@@ -122,10 +126,14 @@ type HttpClient interface {
 
 type requester struct {
 	timeout time.Duration
+	client  HTTPClient
 }
 
 func NewRequester(timeout time.Duration) *requester {
-	return &requester{timeout: timeout}
+	cl := &http.Client{
+		Timeout: timeout,
+	}
+	return &requester{timeout: timeout, client: cl}
 }
 
 func (r requester) GetPage(ctx context.Context, url string) (Page, error) {
@@ -134,14 +142,11 @@ func (r requester) GetPage(ctx context.Context, url string) (Page, error) {
 	case <-ctx.Done():
 		return nil, errors.New("waiting too long response from " + url)
 	default:
-		cl := &http.Client{
-			Timeout: r.timeout,
-		}
 		req, err := http.NewRequest("GET", url, nil)
 		if err != nil {
 			return nil, err
 		}
-		rawPage, err := cl.Do(req)
+		rawPage, err := r.client.Do(req)
 		if err != nil {
 			return nil, err
 		}
