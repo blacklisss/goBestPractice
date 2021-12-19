@@ -7,6 +7,7 @@ import (
 	"github.com/PuerkitoBio/goquery"
 	log "github.com/sirupsen/logrus"
 	"io"
+	"l1g2/configuration"
 	"net/http"
 	urlParser "net/url"
 	"os"
@@ -125,15 +126,16 @@ type HttpClient interface {
 */
 
 type requester struct {
-	timeout time.Duration
-	client  HTTPClient
+	timeout  time.Duration
+	client   HTTPClient
+	startUrl string
 }
 
-func NewRequester(timeout time.Duration) *requester {
+func NewRequester(timeout time.Duration, startUrl string) *requester {
 	cl := &http.Client{
 		Timeout: timeout,
 	}
-	return &requester{timeout: timeout, client: cl}
+	return &requester{timeout: timeout, client: cl, startUrl: startUrl}
 }
 
 func (r requester) GetPage(ctx context.Context, url string) (Page, error) {
@@ -151,7 +153,7 @@ func (r requester) GetPage(ctx context.Context, url string) (Page, error) {
 			return nil, err
 		}
 		defer rawPage.Body.Close()
-		return NewPage(rawPage.Body)
+		return NewPage(rawPage.Body, r.startUrl)
 	}
 
 }
@@ -162,15 +164,16 @@ type Page interface {
 }
 
 type page struct {
-	doc *goquery.Document
+	doc      *goquery.Document
+	startUrl string
 }
 
-func NewPage(raw io.Reader) (page, error) {
+func NewPage(raw io.Reader, startUrl string) (page, error) {
 	doc, err := goquery.NewDocumentFromReader(raw)
 	if err != nil {
 		return page{}, err
 	}
-	return page{doc}, nil
+	return page{doc, startUrl}, nil
 }
 
 func (p page) GetTitle(ctx context.Context) string {
@@ -184,7 +187,7 @@ func (p page) GetTitle(ctx context.Context) string {
 
 func (p page) GetLinks() []string {
 	var urls []string
-	startUrlInfo, _ := urlParser.Parse(startUrl)
+	startUrlInfo, _ := urlParser.Parse(p.startUrl)
 	p.doc.Find("a").Each(func(_ int, s *goquery.Selection) {
 		url, ok := s.Attr("href")
 		if ok {
@@ -203,7 +206,7 @@ func (p page) GetLinks() []string {
 				if strings.HasPrefix(url, "/") {
 					url = startUrlInfo.Scheme + "://" + startUrlInfo.Host + url
 				} else {
-					url = startUrl + url
+					url = p.startUrl + url
 				}
 			}
 			//Здесь может быть относительная ссылка, нужно абсолютную
@@ -212,8 +215,6 @@ func (p page) GetLinks() []string {
 	})
 	return urls
 }
-
-const startUrl = "https://www.w3.org/Consortium/"
 
 func processResult(ctx context.Context, in <-chan CrawlResult, cancel context.CancelFunc) {
 	var errCount int
@@ -250,12 +251,17 @@ func processResult(ctx context.Context, in <-chan CrawlResult, cancel context.Ca
 func main() {
 	pid := os.Getpid()
 	log.Infof("My PID is: %d\n", pid)
+	config, err := configuration.Load("configuration/config.yaml")
+	if err != nil {
+		log.Fatalf("cannot load config")
+	}
+
 	var r Requester
-	r = NewRequester(time.Minute)
+	r = NewRequester(time.Minute, config.StartUrl)
 	//r = NewRequestWithDelay(2*time.Second, r)
 	ctx, cancel := context.WithCancel(context.Background())
 	crawler := NewCrawler(2, r)
-	crawler.Scan(ctx, startUrl, 0)
+	crawler.Scan(ctx, config.StartUrl, 0)
 	chSig := make(chan os.Signal)
 	signal.Notify(chSig, syscall.SIGTERM, syscall.SIGINT, syscall.SIGUSR1)
 	go processResult(ctx, crawler.GetResultChan(), cancel)
