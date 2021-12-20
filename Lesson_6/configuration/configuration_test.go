@@ -22,7 +22,8 @@ var testFiles = []testFile{
 		"config_test.env", "EXTERNAL_URL=http://yandex.ru",
 	},
 }
-var testFilesErrContentFormat = []testFile{
+
+/*var testFilesErrContentFormat = []testFile{
 	{
 		"config_test.json", "\n \"startUrl\": \"https://gb.ru\"\n",
 	},
@@ -32,7 +33,7 @@ var testFilesErrContentFormat = []testFile{
 	{
 		"config_test.env", "{EXTERNAL_URL=http://yandex.ru}",
 	},
-}
+}*/
 var testFilesErrContent = []testFile{
 	{
 		"config_test.json", "{\n  \"startUrl\": \"//gb.ru\"\n}",
@@ -54,9 +55,9 @@ func TestLoadOk(t *testing.T) {
 		want    *Config
 		error   error
 	}{
-		{"config_test.json", &Config{StartUrl: "https://gb.ru"}, nil},
-		{"config_test.yaml", &Config{StartUrl: "https://google.com"}, nil},
-		{"config_test.env", &Config{StartUrl: "http://yandex.ru"}, nil},
+		{"config_test.json", &Config{StartURL: "https://gb.ru"}, nil},
+		{"config_test.yaml", &Config{StartURL: "https://google.com"}, nil},
+		{"config_test.env", &Config{StartURL: "http://yandex.ru"}, nil},
 	}
 
 	for _, test := range tests {
@@ -147,7 +148,7 @@ func TestLoadErrFilesContent(t *testing.T) {
 func TestValidateUrlOk(t *testing.T) {
 	url := "https://www.gb.ru"
 
-	if ok := validateUrl(&url); !ok {
+	if ok := validateURL(&url); !ok {
 		t.Errorf("Ожидалось: «true». Пришло: «%v»", ok)
 	}
 }
@@ -155,13 +156,12 @@ func TestValidateUrlOk(t *testing.T) {
 func TestValidateUrlNotOk(t *testing.T) {
 	url := "www.gb.ru"
 
-	if ok := validateUrl(&url); ok {
+	if ok := validateURL(&url); ok {
 		t.Errorf("Ожидалось: «false». Пришло: «%v»", ok)
 	}
 }
 
-func createTestFiles(testFiles []testFile) {
-
+func createTestFiles(testFiles []testFile) { // unnecessary leading newline (whitespace)
 	for _, tf := range testFiles {
 		f, err := os.OpenFile(tf.fileName, os.O_CREATE|os.O_WRONLY, os.ModePerm)
 		if err != nil {

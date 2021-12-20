@@ -40,8 +40,10 @@ func (c *crawler) GetMaxDepth() int {
 
 func (c *crawler) Scan(ctx context.Context, url string, curDepth int) {
 	var err error
-	ctx2, _ := context.WithTimeout(ctx, time.Second*2)
-	ctx3, _ := context.WithTimeout(ctx, time.Second*5)
+	// Что в таких случаях делать? Или это неправильное решение?
+	ctx2, _ := context.WithTimeout(ctx, time.Second*2) // lostcancel: the cancel function returned by context.WithTimeout should be called, not discarded, to avoid a context leak (govet)
+	// mnd: Magic number: 5, in <argument> detected (gomnd)
+	ctx3, _ := context.WithTimeout(ctx, time.Second*5) // lostcancel: the cancel function returned by context.WithTimeout should be called, not discarded, to avoid a context leak (govet)
 
 	c.visitedMu.RLock()
 	if _, ok := c.visited[url]; ok {
@@ -51,7 +53,6 @@ func (c *crawler) Scan(ctx context.Context, url string, curDepth int) {
 	c.visitedMu.RUnlock()
 
 	if curDepth >= c.maxDepth {
-		//log.Infof("Max Depth on URL: %s\n", url)
 		return
 	}
 
@@ -66,20 +67,20 @@ func (c *crawler) Scan(ctx context.Context, url string, curDepth int) {
 		c.visitedMu.Unlock()
 
 		if err != nil {
-			c.res <- domain.CrawlResult{Url: url, Err: err}
+			c.res <- domain.CrawlResult{URL: url, Err: err}
 			return
 		}
 
 		title := c.page.GetTitle(ctx2)
 
 		if title == "" {
-			c.res <- domain.CrawlResult{Url: url, Err: errors.New("page title timeout")}
+			c.res <- domain.CrawlResult{URL: url, Err: errors.New("page title timeout")}
 			return
 		}
 
 		c.res <- domain.CrawlResult{
 			Title: title,
-			Url:   url,
+			URL:   url,
 			Err:   nil,
 		}
 

@@ -16,16 +16,15 @@ type HTTPClient interface {
 type requester struct {
 	timeout  time.Duration
 	client   HTTPClient
-	startUrl string
+	startURL string // ST1003: struct field startUrl should be startURL (stylecheck)
 }
 
 func (r requester) GetPage(ctx context.Context, url string) (crawler.Page, error) {
-
-	select {
+	select { //ST1003: struct field startUrl should be startURL (stylecheck)
 	case <-ctx.Done():
 		return nil, errors.New("waiting too long response from " + url)
 	default:
-		req, err := http.NewRequest("GET", url, nil)
+		req, err := http.NewRequestWithContext(ctx, "GET", url, http.NoBody) // httpNoBody: http.NoBody should be preferred to the nil request body (gocritic)
 		if err != nil {
 			return nil, err
 		}
@@ -34,14 +33,13 @@ func (r requester) GetPage(ctx context.Context, url string) (crawler.Page, error
 			return nil, err
 		}
 		defer rawPage.Body.Close()
-		return page.NewPage(rawPage.Body, r.startUrl)
+		return page.NewPage(rawPage.Body, r.startURL)
 	}
-
 }
 
-func NewRequester(timeout time.Duration, startUrl string) *requester {
+func NewRequester(timeout time.Duration, startURL string) *requester { // ST1003: func parameter startURL should be startURL (stylecheck)
 	cl := &http.Client{
 		Timeout: timeout,
 	}
-	return &requester{timeout: timeout, client: cl, startUrl: startUrl}
+	return &requester{timeout: timeout, client: cl, startURL: startURL}
 }

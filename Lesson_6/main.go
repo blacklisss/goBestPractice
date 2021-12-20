@@ -1,9 +1,9 @@
 package main
 
+// File is not `goimports`-ed with -local github.com/golangci/golangci-lint (goimports)
 import (
 	"context"
 	"fmt"
-	log "github.com/sirupsen/logrus"
 	"l1g2/configuration"
 	cr "l1g2/services/crawler"
 	"l1g2/services/processor"
@@ -12,6 +12,8 @@ import (
 	"os/signal"
 	"syscall"
 	"time"
+
+	log "github.com/sirupsen/logrus"
 )
 
 func main() {
@@ -22,15 +24,14 @@ func main() {
 	if err != nil {
 		log.Fatalf("can't load configuration file")
 	}
-
-	var r cr.Requester
-	r = requester.NewRequester(time.Minute, config.StartUrl)
+	// S1021: should merge variable declaration with assignment on next line (gosimple)
+	var r cr.Requester = requester.NewRequester(time.Minute, config.StartURL)
 
 	ctx, cancel := context.WithCancel(context.Background())
 	crawler := cr.NewCrawler(2, r)
-	crawler.Scan(ctx, config.StartUrl, 0)
+	crawler.Scan(ctx, config.StartURL, 0)
 
-	chSig := make(chan os.Signal)
+	chSig := make(chan os.Signal, 1) // sigchanyzer: misuse of unbuffered os.Signal channel as argument to signal.Notify (govet)
 	signal.Notify(chSig, syscall.SIGTERM, syscall.SIGINT, syscall.SIGUSR1)
 
 	go processor.ProcessResult(ctx, crawler.GetResultChan(), cancel)

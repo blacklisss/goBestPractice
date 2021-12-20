@@ -1,17 +1,19 @@
 package page
 
+// File is not `goimports`-ed with -local github.com/golangci/golangci-lint (goimports)
 import (
 	"context"
-	"github.com/PuerkitoBio/goquery"
-	log "github.com/sirupsen/logrus"
 	"io"
 	urlParser "net/url"
 	"strings"
+
+	"github.com/PuerkitoBio/goquery"
+	log "github.com/sirupsen/logrus"
 )
 
 type page struct {
 	doc      *goquery.Document
-	StartUrl string
+	StartURL string // ST1003: struct field StartUrl should be StartURL (stylecheck)
 }
 
 func (p page) GetTitle(ctx context.Context) string {
@@ -26,13 +28,12 @@ func (p page) GetTitle(ctx context.Context) string {
 func (p page) GetLinks() []string {
 	var urls []string
 
-	startUrlInfo, _ := urlParser.Parse(p.StartUrl)
+	startURLInfo, _ := urlParser.Parse(p.StartURL) // ST1003: var startUrlInfo should be startURLInfo (stylecheck)
 
 	p.doc.Find("a").Each(func(_ int, s *goquery.Selection) {
 		url, ok := s.Attr("href")
 		if ok {
 			if strings.HasPrefix(url, "#") {
-				//log.Infof("Anchor link %s\n", url)
 				return
 			}
 
@@ -44,23 +45,23 @@ func (p page) GetLinks() []string {
 
 			if urlInfo.Host == "" {
 				if strings.HasPrefix(url, "/") {
-					url = startUrlInfo.Scheme + "://" + startUrlInfo.Host + url
+					url = startURLInfo.Scheme + "://" + startURLInfo.Host + url
 				} else {
-					url = p.StartUrl + url
+					url = p.StartURL + url
 				}
 			}
-			//Здесь может быть относительная ссылка, нужно абсолютную
+			// Здесь может быть относительная ссылка, нужно абсолютную
 			urls = append(urls, url)
 		}
 	})
 	return urls
 }
 
-func NewPage(raw io.Reader, startUrl string) (page, error) {
+func NewPage(raw io.Reader, startURL string) (page, error) { // ST1003: func parameter startUrl should be startURL (stylecheck)
 	doc, err := goquery.NewDocumentFromReader(raw)
 	if err != nil {
 		return page{}, err
 	}
 
-	return page{doc, startUrl}, nil
+	return page{doc, startURL}, nil
 }

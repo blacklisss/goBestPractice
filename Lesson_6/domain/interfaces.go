@@ -13,6 +13,6 @@ type Crawler interface {
 
 type CrawlResult struct {
 	Title string
-	Url   string
+	URL   string // ST1003: struct field Url should be URL (stylecheck)
 	Err   error
 }

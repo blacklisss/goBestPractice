@@ -1,10 +1,12 @@
 package processor
 
+//  File is not `goimports`-ed with -local github.com/golangci/golangci-lint (goimports)
 import (
 	"context"
-	log "github.com/sirupsen/logrus"
 	"l1g2/domain"
 	"time"
+
+	log "github.com/sirupsen/logrus"
 )
 
 func ProcessResult(ctx context.Context, in <-chan domain.CrawlResult, cancel context.CancelFunc) {
@@ -17,13 +19,13 @@ func ProcessResult(ctx context.Context, in <-chan domain.CrawlResult, cancel con
 		case res := <-in:
 			sleeping = time.Now()
 			if res.Err != nil {
-				log.Errorf("ERROR Link: %s, err: %v\n", res.Url, res.Err)
+				log.Errorf("ERROR Link: %s, err: %v\n", res.URL, res.Err)
 				errCount++
-				if errCount >= 1 {
-					//cancel()
-				}
+				/*if errCount >= 1 { empty branch (staticcheck)
+					//cancel()  commentFormatting: put a space between `//` and comment text (gocritic)
+				}*/
 			} else {
-				log.Infof("Link: %s, Title: %s\n", res.Url, res.Title)
+				log.Infof("Link: %s, Title: %s\n", res.URL, res.Title)
 			}
 		case <-ctx.Done():
 			log.Warnf("context canceled\n")
