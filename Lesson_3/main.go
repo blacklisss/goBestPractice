@@ -4,8 +4,6 @@ import (
 	"context"
 	"errors"
 	"fmt"
-	"github.com/PuerkitoBio/goquery"
-	log "github.com/sirupsen/logrus"
 	"io"
 	"net/http"
 	urlParser "net/url"
@@ -15,6 +13,9 @@ import (
 	"sync"
 	"syscall"
 	"time"
+
+	"github.com/PuerkitoBio/goquery"
+	log "github.com/sirupsen/logrus"
 )
 
 type Crawler interface {
@@ -38,6 +39,10 @@ type crawler struct {
 	visitedMu sync.RWMutex
 }
 
+const (
+	ErrorURL = "http://twitter.com/W3C"
+)
+
 func (c *crawler) GetResultChan() <-chan CrawlResult {
 	return c.res
 }
@@ -52,6 +57,11 @@ func NewCrawler(maxDepth int, req Requester) *crawler {
 }
 
 func (c *crawler) Scan(ctx context.Context, url string, curDepth int) {
+	defer func() {
+		if r := recover(); r != nil {
+			c.res <- CrawlResult{Url: url, Err: errors.New("panic")}
+		}
+	}()
 	ctx2, _ := context.WithTimeout(ctx, time.Second*2)
 	ctx3, _ := context.WithTimeout(ctx, time.Second*5)
 
@@ -69,6 +79,9 @@ func (c *crawler) Scan(ctx context.Context, url string, curDepth int) {
 	case <-ctx.Done():
 		return
 	default:
+		if url == ErrorURL {
+			panic(url)
+		}
 		page, err := c.req.GetPage(ctx3, url)
 		c.visitedMu.Lock()
 		c.visited[url] = struct{}{}
@@ -211,7 +224,6 @@ func (p page) GetLinks() []string {
 const startUrl = "https://www.w3.org/Consortium/"
 
 func processResult(ctx context.Context, in <-chan CrawlResult, cancel context.CancelFunc) {
-	var errCount int
 	var ticker = time.NewTicker(time.Second * 1)
 	var sleeping time.Time
 
@@ -221,10 +233,6 @@ func processResult(ctx context.Context, in <-chan CrawlResult, cancel context.Ca
 			sleeping = time.Now()
 			if res.Err != nil {
 				log.Errorf("ERROR Link: %s, err: %v\n", res.Url, res.Err)
-				errCount++
-				if errCount >= 1 {
-					//cancel()
-				}
 			} else {
 				log.Infof("Link: %s, Title: %s\n", res.Url, res.Title)
 			}
