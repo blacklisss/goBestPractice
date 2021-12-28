@@ -40,10 +40,14 @@ func (c *crawler) GetMaxDepth() int {
 
 func (c *crawler) Scan(ctx context.Context, url string, curDepth int) {
 	var err error
-	// Что в таких случаях делать? Или это неправильное решение?
-	ctx2, _ := context.WithTimeout(ctx, time.Second*2) // lostcancel: the cancel function returned by context.WithTimeout should be called, not discarded, to avoid a context leak (govet)
-	// mnd: Magic number: 5, in <argument> detected (gomnd)
-	ctx3, _ := context.WithTimeout(ctx, time.Second*5) // lostcancel: the cancel function returned by context.WithTimeout should be called, not discarded, to avoid a context leak (govet)
+
+	ctx2, cancel2 := context.WithTimeout(ctx, time.Second*2)
+	ctx3, cancel3 := context.WithTimeout(ctx, time.Second*5)
+
+	defer func() {
+		cancel2()
+		cancel3()
+	}()
 
 	c.visitedMu.RLock()
 	if _, ok := c.visited[url]; ok {
