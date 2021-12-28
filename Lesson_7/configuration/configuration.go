@@ -9,7 +9,6 @@ import (
 
 	"github.com/joho/godotenv"
 	"github.com/namsral/flag"
-	"gopkg.in/yaml.v2"
 )
 
 // File is not `goimports`-ed with -local github.com/golangci/golangci-lint (goimports)
