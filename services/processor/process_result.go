@@ -3,7 +3,7 @@ package processor
 //  File is not `goimports`-ed with -local github.com/golangci/golangci-lint (goimports)
 import (
 	"context"
-	"l1g2/domain"
+	"gb/bestPractice/domain"
 	"time"
 
 	log "github.com/sirupsen/logrus"

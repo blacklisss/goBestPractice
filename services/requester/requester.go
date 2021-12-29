@@ -3,8 +3,8 @@ package requester
 import (
 	"context"
 	"errors"
-	"l1g2/services/crawler"
-	"l1g2/services/page"
+	"gb/bestPractice/services/crawler"
+	"gb/bestPractice/services/page"
 	"net/http"
 	"time"
 )

@@ -3,7 +3,7 @@ package crawler
 import (
 	"context"
 	"errors"
-	"l1g2/domain"
+	"gb/bestPractice/domain"
 	"sync"
 	"time"
 )

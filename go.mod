@@ -1,4 +1,4 @@
-module l1g2
+module gb/bestPractice
 
 go 1.17
 
@@ -11,6 +11,7 @@ require (
 
 require (
 	github.com/andybalholm/cascadia v1.3.1 // indirect
-	golang.org/x/net v0.0.0-20211015210444-4f30a5c0130f // indirect
-	golang.org/x/sys v0.0.0-20211019181941-9d821ace8654 // indirect
+	golang.org/x/net v0.0.0-20210916014120-12bc252f5db8 // indirect
+	golang.org/x/sys v0.0.0-20210423082822-04245dca01da // indirect
+	gopkg.in/yaml.v2 v2.4.0 // indirect
 )
